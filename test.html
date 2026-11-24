@@ -1,0 +1,561 @@
+﻿<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>MaarsbergerBrug</title>
+
+<style>
+html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+canvas {
+    display: block;
+}
+</style>
+</head>
+
+<body>
+<!-- ///////////////////////////////////////////////////////////////////////// -->
+<script type="module">
+
+// importeren ThreeJS bibliotheek bij een CDN
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js';
+
+//////////////////////////////////////////////////////////////////////////////
+// SCENE
+//////////////////////////////////////////////////////////////////////////////
+
+const scene = new THREE.Scene();
+
+//camera opzet
+const camera = new THREE.PerspectiveCamera(
+    75,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    10000
+);
+
+camera.position.set(0,0,0.1);
+
+const renderer = new THREE.WebGLRenderer({
+    antialias: true
+});
+
+renderer.setSize(
+    window.innerWidth,
+    window.innerHeight
+);
+
+document.body.appendChild(
+    renderer.domElement
+);
+
+let yaw = 0;
+let pitch = 0;
+
+let mouseDown = false;
+
+document.addEventListener("mousedown", () => {
+    mouseDown = true;
+});
+
+document.addEventListener("mouseup", () => {
+    mouseDown = false;
+});
+document.addEventListener("mousemove",(event)=>{
+
+    if(mouseDown){
+
+        yaw -= event.movementX * 0.002;
+        pitch -= event.movementY * 0.002;
+
+        pitch = Math.max(
+            -Math.PI/2,
+            Math.min(Math.PI/2,pitch)
+        );
+
+        camera.rotation.order = "YXZ";
+
+        camera.rotation.y = yaw;
+        camera.rotation.x = pitch;
+    }
+
+});
+
+//////////////////////////////////////////////////////////////////////////////
+// DATA
+//////////////////////////////////////////////////////////////////////////////
+
+const KubusMaat = 6
+
+//online opslag
+const PANO_ROOT =
+    "https://raw.githubusercontent.com/hekautrecht-code/PanTestData/refs/heads/main/";
+
+//parameters behorende tot panorama foto's
+/* 
+LET OP: THREEJS hanteert een XYZ-stelsel van "breedte, hoogte, diepte" terwijl een E57-Puntenwolk een
+XYZ-stelsel van "breedte, diepte, hoogte" hanteert. Resumé(breedte, diepte, hoogte): ThreeJS=XZY ; E57=XYZ
+x --> -x spiegelen wordt in FME uitgevoerd 
+*/ 
+const panoramas = [
+
+    {
+        id : "panorama1",
+        folder : PANO_ROOT  + "/panorama1",
+        position:{
+            x : 0.0,
+            y : 0.0,
+            z : 0.0,
+        },
+        fotoQuaternions:{
+            qx1 : 0.6912787559953253,
+            qy1 : -0.1487780284691145,
+            qz1 : -0.14883036934284127,
+            qw1 : 0.6912657238108023,
+            qx2 : -0.3835689326456742,
+            qy2 : 0.5940006337305214,
+            qz2 : 0.5940468594633163,
+            qw2 : -0.3835967280863701,
+            qx3 : 0.1488303693428402,
+            qy3 : 0.691265723810803,
+            qz3 : 0.6912787559953252,
+            qw3 : 0.14877802846911328,
+            qx4 : 0.5940468594633158,
+            qy4 : 0.38359672808637096,
+            qz4 : 0.3835689326456751,
+            qw4 : 0.5940006337305207,
+            qx5 : 0.9776065769629407,
+            qy5 : -0.2104409162308976,
+            qz5 : -3.70105867456531e-05,
+            qw5 : -9.215146048826132e-06,
+            qx6 : 0.0000092151460504,
+            qy6 : 3.7010586745310276e-05,
+            qz6 : -0.21044091623089756,
+            qw6 : 0.9776065769629405,
+        }
+    },
+    {
+        id : "panorama2",
+        folder : PANO_ROOT  + "/panorama2",
+        position:{
+            x : -3.4956777260813396,
+            y : 14.423245165264234,
+            z : 0.0316273941942784,
+        },
+        fotoQuaternions:{
+            qx1 : 0.7003283496872842,
+            qy1 : -0.09766240127168055,
+            qz1 : -0.09772338883559295,
+            qw1 : 0.7003230663605345,
+            qx2 : -0.4261060541948853,
+            qy2 : 0.5642609354510574,
+            qz2 : 0.5643077960472395,
+            qw2 : -0.4261454430387239,
+            qx3 : 0.0977233888355918,
+            qy3 : 0.7003230663605349,
+            qz3 : 0.7003283496872842,
+            qw3 : 0.09766240127167941,
+            qx4 : 0.5643077960472390,
+            qy4 : 0.42614544303872476,
+            qz4 : 0.4261060541948862,
+            qw4 : 0.5642609354510566,
+            qx5 : 0.9904101143659529,
+            qy5 : -0.13815861713234454,
+            qz5 : -4.3124720010632905e-05,
+            qw5 : -3.735876171116701e-06,
+            qx6 : 0.0000037358761728,
+            qy6 : 4.3124720010423356e-05,
+            qz6 : -0.1381586171323444,
+            qw6 : 0.9904101143659526,
+        }
+    },
+    {
+        id : "panorama3",
+        folder : PANO_ROOT  + "/panorama3",
+        position:{
+            x : -1.883221903233789,
+            y : 5.0979114366928115,
+            z : 3.0195617805948265,
+        },
+        fotoQuaternions:{
+            qx1 : -0.3676640622761899,
+            qy1 : 0.6039823523722705,
+            qz1 : 0.6040001466320876,
+            qw1 : -0.3677122219913902,
+            qx2 : 0.1671148478871309,
+            qy2 : 0.6870918227747206,
+            qz2 : 0.6870703511553052,
+            qw2 : 0.16706821138414954,
+            qx3 : 0.6040001466320871,
+            qy3 : 0.36771222199139114,
+            qz3 : 0.36766406227619075,
+            qw3 : 0.6039823523722696,
+            qx4 : 0.6870703511553055,
+            qy4 : -0.16706821138414857,
+            qz4 : -0.16711484788712977,
+            qw4 : 0.6870918227747207,
+            qx5 : -0.5199895573293720,
+            qy5 : 0.8541726166006535,
+            qz5 : 1.2582441783693559e-05,
+            qw5 : -3.405406119859276e-05,
+            qx6 : -0.0000340540611978,
+            qy6 : 1.258244178231361e-05,
+            qz6 : -0.8541726166006531,
+            qw6 : 0.519989557329372,
+        }
+    }
+
+];
+
+//////////////////////////////////////////////////////////////////////////////
+// TEXTURE LADER
+//////////////////////////////////////////////////////////////////////////////
+
+const loader = new THREE.TextureLoader();
+
+
+//////////////////////////////////////////////////////////////////////////////
+// KUBUS OPBOUWEN VANUIT DE 6 FOTOVLAKKEN
+//////////////////////////////////////////////////////////////////////////////
+
+function buildCube(pano,size=1){
+
+    const cube = new THREE.Group();
+
+    cube.name = pano.id;
+    cube.userData = pano;
+
+    const faces = [
+
+        {
+            file:"front.jpg",
+            position:[0,0,size/2],
+            rotation: [pano.fotoQuaternions.qx1,pano.fotoQuaternions.qy1,pano.fotoQuaternions.qz1,pano.fotoQuaternions.qw1]
+        },
+
+        {
+            file:"right.jpg",
+            position:[size/2,0,0],
+            rotation:[pano.fotoQuaternions.qx2,pano.fotoQuaternions.qy2,pano.fotoQuaternions.qz2,pano.fotoQuaternions.qw2]
+        },
+
+        {
+            file:"back.jpg",
+            position:[0,0,-size/2],
+            rotation:[pano.fotoQuaternions.qx3,pano.fotoQuaternions.qy3,pano.fotoQuaternions.qz3,pano.fotoQuaternions.qw3]
+        },
+
+        {
+            file:"left.jpg",
+            position:[-size/2,0,0],
+            rotation:[pano.fotoQuaternions.qx4,pano.fotoQuaternions.qy4,pano.fotoQuaternions.qz4,pano.fotoQuaternions.qw4]
+        },
+
+        {
+            file:"top.jpg",
+            position:[0,size/2,0],
+            rotation:[pano.fotoQuaternions.qx5,pano.fotoQuaternions.qy5,pano.fotoQuaternions.qz5,pano.fotoQuaternions.qw5]
+        },
+
+        {
+            file:"bottom.jpg",
+            position:[0,-size/2,0],
+            rotation:[pano.fotoQuaternions.qx6,pano.fotoQuaternions.qy6,pano.fotoQuaternions.qz6,pano.fotoQuaternions.qw6]
+        }
+
+    ];
+
+    faces.forEach(face=>{
+
+        const url =
+			pano.folder + "/" + face.file;
+
+		console.log(url);
+
+		const texture = loader.load(
+			url,
+			() => console.log("geladen:", url),
+			undefined,
+			err => console.error("fout:", url, err)
+			);
+
+        const material =
+            new THREE.MeshBasicMaterial({
+                map: texture,
+                side: THREE.FrontSide
+            });
+
+        const mesh =
+            new THREE.Mesh(
+                new THREE.PlaneGeometry(size,size),
+                material
+            );
+		
+		//start met een E57 quaternion breedt-diepte-hoogte
+		const faceQuaternionE57 = new THREE.Quaternion(
+			face.rotation[0],
+			face.rotation[1],
+			face.rotation[2],
+			face.rotation[3]
+		);
+		
+		//aanmaken verplaats-draai-vector: fotovlak op de oorsprong 0,0,0 draaien waarbij het fotovlak een halve kubus maat verplaatst is
+		const offset = new THREE.Vector3(0,0,-size/2);
+		offset.applyQuaternion(faceQuaternionE57);
+		
+		//verplaatsing en draaiing overnemen van offset vector
+		mesh.position.copy(offset);
+		mesh.quaternion.copy(faceQuaternionE57);
+
+        cube.add(mesh);
+
+    });
+
+	// oplossen right-handed-rule + y-up vs z-up
+	cube.rotation.x = -Math.PI / 2;
+	cube.rotation.z = Math.PI; 
+
+	// kubus van oorsprong naar rel. positie tov andere panorama's
+    cube.position.set(
+		pano.position.x,
+        pano.position.z,
+        pano.position.y
+    );
+
+    return cube;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// OPSLAAN VAN KUBUSSEN
+//////////////////////////////////////////////////////////////////////////////
+
+const cubes = {};
+
+panoramas.forEach(pano=>{
+
+    const cube = buildCube(
+        pano,
+        KubusMaat
+    );
+
+    scene.add(cube);
+
+    cubes[pano.id] = cube;
+
+});
+
+Object.values(cubes).forEach(cube => {
+    cube.visible = false;
+});
+
+cubes["panorama1"].visible = true;
+
+//////////////////////////////////////////////////////////////////////////////
+// TARGETS ANDERE PANORAMA'S
+//////////////////////////////////////////////////////////////////////////////
+
+function createHotspot(targetId){
+
+	let image = new Image();
+	image.src = "data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAAMsAAADLAAShkWtsAAAH+SURBVDhPbZNPSFRRFMZ/96nBWG5yxI1by1VYieDiOehm0IUuB8RlhoQ4exMqEBoixkWZZAhugwyEWdgmGNECEcyoRTIbGQqylRDlTJ5zWrz58+bpB+fCPZzv4/sO90IEJbilw8NL0t39UOCHwKnAocArhb7ofA0GreL7K7K5KSZiurb2WyBrYNVSEA2EYufJqVTeTk6shrMzk2TyrcDXsIiBCeQMXE1AEonVBnIFurVl4lxGzwu8kM7ORQCn0G/p9EfP972wqyo0k/nE3t5PD5IEbg9tdLTgpqeTjI3ddGdwx0FvhPfHq+QPOMSBfQeXtKnpmcvnZ9zAgNOhoSUECtGMCo8igggsKrzXdPqgFnF+/gCBciTfkcLlqIDCVYnHn1uxWNuRZLOnXsViGG8cNEd6AM7NzaXo6gp3zAOOqneFD0xODlpv7/36VADr73/gpqbiiFAtd3z8zQmseDClILS1LXv7+zO6u1tyExO3gTLB0dzU0nLPa21tcGal0jYKfRpovpaFhe9BODEZH88JfIkuOLSrfwrXIdhwVnp6Gh6T7uyoOPdYQaPkisCTuhVwMjLyLvoadXb2s8DGBeQNg5ZQGlCI6eDgsuRyYqqBQrFo0tHxVOBvhVgWyITJ9Q9RgcINEom7+L5v7e3XbH39F9vbLz24UoLVGBTC8/8Bg2Z64eDcyqgAAAAASUVORK5CYII=";
+	let texture = new THREE.Texture();
+        texture.image = image;
+        image.onload = function () {
+            texture.needsUpdate = true;
+        };
+
+    const sprite =
+        new THREE.Sprite(
+
+            new THREE.SpriteMaterial({
+                map:texture
+            })
+
+        );
+
+    sprite.scale.set(
+        0.12,
+        0.12,
+        0.12
+    );
+
+    sprite.userData.targetId =
+        targetId;
+
+    return sprite;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// TARGETS AANMAKEN EN AAN DE KUBUSSEN KOPPELEN
+//////////////////////////////////////////////////////////////////////////////
+
+function createLinks(){
+
+    panoramas.forEach(source=>{
+
+        const sourceCube =
+            cubes[source.id];
+
+        panoramas.forEach(target=>{
+
+            if(source.id === target.id)
+                return;
+
+            const hotspot =
+                createHotspot(
+                    target.id
+                );
+			
+			const targetCube = cubes[target.id];
+	
+			const sourceWorld = new THREE.Vector3();
+			const targetWorld = new THREE.Vector3();
+
+			sourceCube.getWorldPosition(sourceWorld);
+			targetCube.getWorldPosition(targetWorld);
+
+			const direction = targetWorld
+				.clone()
+				.sub(sourceWorld)
+				.normalize();
+				
+			const worldPoint = sourceWorld
+				.clone()
+				.add(direction.multiplyScalar(KubusMaat/2.1)); //2.1 zodat de targets zeker binnen in de kubus vallen
+
+			const localPoint = sourceCube.worldToLocal(
+				worldPoint.clone()
+			);
+
+			hotspot.position.copy(localPoint);
+			//-------------------------------------------
+			
+            sourceCube.add(
+                hotspot
+            );
+        });
+    });
+}
+
+scene.updateMatrixWorld(true);
+createLinks();
+
+//////////////////////////////////////////////////////////////////////////////
+// STARTPANORAMA
+//////////////////////////////////////////////////////////////////////////////
+
+let activePano =
+    cubes["panorama1"];
+
+camera.position.copy(
+    activePano.position
+);
+
+//////////////////////////////////////////////////////////////////////////////
+// RAYCASTER
+//////////////////////////////////////////////////////////////////////////////
+
+const raycaster =
+    new THREE.Raycaster();
+
+const mouse =
+    new THREE.Vector2();
+
+window.addEventListener(
+    "click",
+    event=>{
+
+        mouse.x =
+            (event.clientX / window.innerWidth) * 2 - 1;
+
+        mouse.y =
+            -(event.clientY / window.innerHeight) * 2 + 1;
+
+        raycaster.setFromCamera(
+            mouse,
+            camera
+        );
+
+        const hits =
+            raycaster.intersectObjects(
+                scene.children,
+                true
+            );
+
+        for(const hit of hits){
+
+            if(hit.object.userData.targetId){
+
+                const target =
+                    cubes[
+                        hit.object.userData.targetId
+                    ];
+				
+				Object.values(cubes).forEach(cube => {
+					cube.visible = false;
+				});
+
+                activePano = target;
+
+				activePano.visible = true;
+				
+				camera.position.copy(
+					activePano.position
+				);
+						
+                break;
+            }
+        }
+
+    }
+);
+
+//////////////////////////////////////////////////////////////////////////////
+// RESIZE
+//////////////////////////////////////////////////////////////////////////////
+
+window.addEventListener(
+    'resize',
+    ()=>{
+
+        camera.aspect =
+            window.innerWidth /
+            window.innerHeight;
+
+        camera.updateProjectionMatrix();
+
+        renderer.setSize(
+            window.innerWidth,
+            window.innerHeight
+        );
+
+    }
+);
+
+//////////////////////////////////////////////////////////////////////////////
+// ANIMATE
+//////////////////////////////////////////////////////////////////////////////
+
+function animate(){
+
+    requestAnimationFrame(
+        animate
+    );
+
+    renderer.render(
+        scene,
+        camera
+    );
+}
+
+animate();
+
+</script>
+
+</body>
+</html>
